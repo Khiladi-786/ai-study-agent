@@ -10,6 +10,7 @@ client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 app = FastAPI()
 
+# Enable frontend access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,10 +26,17 @@ def home():
 @app.post("/ask")
 async def ask_agent(question: str):
     try:
+
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=question
         )
-        return {"response": response.text}
+
+        # safer text extraction
+        answer = response.text if hasattr(response, "text") else str(response)
+
+        return {"answer": answer}
+
     except Exception as e:
-        return {"error": str(e)}
+
+        return {"answer": f"Error: {str(e)}"}
