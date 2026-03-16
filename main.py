@@ -4,17 +4,20 @@ import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load environment variables
 load_dotenv()
 
 api_key = os.getenv("GOOGLE_API_KEY")
 
-print("API KEY:", os.getenv("GOOGLE_API_KEY"))
+if not api_key:
+    raise ValueError("GOOGLE_API_KEY not found")
 
+# Initialize Gemini client
 client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
-# Allow frontend requests
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,10 +26,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Home route
 @app.get("/")
 def home():
     return {"message": "AI Study Agent Running"}
 
+# Ask AI
 @app.post("/ask")
 async def ask_agent(question: str):
     try:
@@ -35,7 +40,9 @@ async def ask_agent(question: str):
             contents=question
         )
 
-        return {"answer": response.text}
+        answer = response.text if response.text else "No response from AI"
+
+        return {"answer": answer}
 
     except Exception as e:
-        return {"answer": str(e)}
+        return {"error": str(e)}
