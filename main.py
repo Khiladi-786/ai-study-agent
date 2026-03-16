@@ -27,19 +27,13 @@ def home():
 
 @app.post("/ask")
 async def ask_agent(question: str):
-
     try:
-
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=question
         )
 
-        answer = response.text
-
-        return {"answer": answer}
+        return {"answer": response.text}
 
     except Exception as e:
-
-        # show real backend error
-        return {"answer": f"Backend Error: {str(e)}"}
+        return {"answer": str(e)}
