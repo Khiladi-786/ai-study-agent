@@ -1,23 +1,16 @@
 from fastapi import FastAPI
-from google import genai
+from pydantic import BaseModel
+import requests
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
-# Load environment variables
 load_dotenv()
 
-api_key = os.getenv("GOOGLE_API_KEY")
-
-if not api_key:
-    raise ValueError("GOOGLE_API_KEY not found")
-
-client = genai.Client(api_key=api_key)
+API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 app = FastAPI()
 
-# Allow frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,33 +19,39 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model
 class Question(BaseModel):
     question: str
 
-# Health check
+
 @app.get("/")
 def home():
     return {"message": "AI Study Agent Running"}
 
-# Chat history
-chat_history = []
-
-from pydantic import BaseModel
-
-class Question(BaseModel):
-    question: str
-
 
 @app.post("/ask")
 async def ask_agent(data: Question):
+
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=data.question
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct",
+                "messages": [
+                    {"role": "user", "content": data.question}
+                ]
+            }
         )
 
-        return {"answer": response.text}
+        result = response.json()
+
+        answer = result["choices"][0]["message"]["content"]
+
+        return {"answer": answer}
 
     except Exception as e:
         return {"error": str(e)}
