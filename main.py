@@ -1,57 +1,42 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import requests
+from fastapi import FastAPI, Body
+from google import genai
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
+api_key = os.getenv("GOOGLE_API_KEY")
+
+client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
+# CORS FIX
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # allow frontend requests
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class Question(BaseModel):
-    question: str
-
-
 @app.get("/")
 def home():
     return {"message": "AI Study Agent Running"}
 
-
 @app.post("/ask")
-async def ask_agent(data: Question):
+async def ask_agent(data: dict = Body(...)):
+
+    question = data.get("question")
 
     try:
-
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "mistralai/mistral-7b-instruct",
-                "messages": [
-                    {"role": "user", "content": data.question}
-                ]
-            }
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=question
         )
 
-        result = response.json()
-
-        answer = result["choices"][0]["message"]["content"]
-
-        return {"answer": answer}
+        return {"answer": response.text}
 
     except Exception as e:
         return {"error": str(e)}

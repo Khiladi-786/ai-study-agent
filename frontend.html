@@ -108,53 +108,51 @@ background:#16a34a;
 
 <script>
 
-async function ask(){
-
-let q=document.getElementById("question").value
-let messages=document.getElementById("messages")
-
-if(!q) return
-
-messages.innerHTML+=`<div class="msg user">${q}</div>`
-
-document.getElementById("question").value=""
-
-let typing = document.createElement("div")
-typing.className="msg ai"
-typing.innerText="AI is typing..."
-messages.appendChild(typing)
-
-messages.scrollTop=messages.scrollHeight
-
-try{
-
-let res=await fetch("https://ai-study-agent-28fe.onrender.com/ask",{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({question:q})
-})
-
-let data=await res.json()
-
-typing.remove()
-
-messages.innerHTML+=`<div class="msg ai">${data.answer || data.error}</div>`
-
-messages.scrollTop=messages.scrollHeight
-
-}catch(err){
-
-typing.remove()
-
-messages.innerHTML+=`<div class="msg ai">Server not reachable</div>`
-
-}
-
-}
-
-</script>
+    async function ask(){
+    
+    let q=document.getElementById("question").value
+    let messages=document.getElementById("messages")
+    
+    if(!q) return
+    
+    messages.innerHTML+=`<div class="msg user">${q}</div>`
+    
+    document.getElementById("question").value=""
+    
+    let typing=document.createElement("div")
+    typing.className="msg ai"
+    typing.innerText="AI is typing..."
+    messages.appendChild(typing)
+    
+    try{
+    
+    let res = await fetch("https://ai-study-agent-28fe.onrender.com/ask",{
+    method:"POST",
+    headers:{
+    "Content-Type":"application/json"
+    },
+    body:JSON.stringify({question:q})
+    })
+    
+    let data = await res.json()
+    
+    typing.remove()
+    
+    messages.innerHTML+=`<div class="msg ai">${data.answer || data.error}</div>`
+    
+    messages.scrollTop=messages.scrollHeight
+    
+    }catch(err){
+    
+    typing.remove()
+    
+    messages.innerHTML+=`<div class="msg ai">Server not reachable</div>`
+    
+    }
+    
+    }
+    
+    </script>
 
 </body>
 </html>
