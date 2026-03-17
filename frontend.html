@@ -1,45 +1,112 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from google import genai
-import os
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="en">
 
-load_dotenv()
+<head>
+<meta charset="UTF-8">
+<title>AI Study Agent</title>
 
-app = FastAPI()
+<style>
+body{
+font-family:Arial;
+background:#0b1320;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+color:white;
+}
 
-# CORS FIX
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # allow frontend
-    allow_credentials=True,
-    allow_methods=["*"],  # allow OPTIONS, POST, GET
-    allow_headers=["*"],
-)
+#chat{
+width:600px;
+background:#1c2a3d;
+border-radius:12px;
+padding:20px;
+}
 
-api_key = os.getenv("GOOGLE_API_KEY")
+#messages{
+height:350px;
+overflow-y:auto;
+margin-bottom:20px;
+}
 
-client = genai.Client(api_key=api_key)
+.user{
+background:#2d6cdf;
+padding:10px;
+border-radius:10px;
+margin:8px 0;
+text-align:right;
+}
 
+.ai{
+background:#3b4b61;
+padding:10px;
+border-radius:10px;
+margin:8px 0;
+}
 
-@app.get("/")
-def home():
-    return {"message": "AI Study Agent Running"}
+input{
+width:80%;
+padding:12px;
+border-radius:6px;
+border:none;
+}
 
+button{
+padding:12px;
+background:#27ae60;
+color:white;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
+</style>
+</head>
 
-@app.post("/ask")
-async def ask_agent(request: Request):
+<body>
 
-    body = await request.json()
-    question = body.get("question")
+<div id="chat">
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=question
-        )
+<h2>AI Study Agent</h2>
 
-        return {"answer": response.text}
+<div id="messages"></div>
 
-    except Exception as e:
-        return {"error": str(e)}
+<input id="question" placeholder="Ask something about AI / ML..." />
+<button onclick="ask()">Send</button>
+
+</div>
+
+<script>
+
+async function ask(){
+
+let q=document.getElementById("question").value
+let messages=document.getElementById("messages")
+
+messages.innerHTML+=`<div class="user">${q}</div>`
+
+try{
+
+let res = await fetch("https://ai-study-agent-28fe.onrender.com/ask",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({question:q})
+})
+
+let data = await res.json()
+
+messages.innerHTML+=`<div class="ai">${data.answer || data.error}</div>`
+
+}catch(err){
+
+messages.innerHTML+=`<div class="ai">Server not reachable</div>`
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
