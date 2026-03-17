@@ -1,158 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Study Agent</title>
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from google import genai
+import os
+from dotenv import load_dotenv
 
-<style>
+load_dotenv()
 
-body{
-font-family: system-ui;
-background:#0f172a;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-margin:0;
-}
+app = FastAPI()
 
-#chat{
-width:700px;
-height:80vh;
-background:#1e293b;
-border-radius:12px;
-display:flex;
-flex-direction:column;
-box-shadow:0 10px 40px rgba(0,0,0,0.5);
-}
+# CORS FIX
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow frontend
+    allow_credentials=True,
+    allow_methods=["*"],  # allow OPTIONS, POST, GET
+    allow_headers=["*"],
+)
 
-header{
-padding:15px;
-font-size:20px;
-font-weight:600;
-border-bottom:1px solid #334155;
-}
+api_key = os.getenv("GOOGLE_API_KEY")
 
-#messages{
-flex:1;
-overflow-y:auto;
-padding:20px;
-}
+client = genai.Client(api_key=api_key)
 
-.msg{
-margin-bottom:12px;
-padding:12px 14px;
-border-radius:10px;
-max-width:75%;
-line-height:1.5;
-}
 
-.user{
-background:#2563eb;
-margin-left:auto;
-}
+@app.get("/")
+def home():
+    return {"message": "AI Study Agent Running"}
 
-.ai{
-background:#334155;
-}
 
-#inputBox{
-display:flex;
-padding:15px;
-border-top:1px solid #334155;
-gap:10px;
-}
+@app.post("/ask")
+async def ask_agent(request: Request):
 
-input{
-flex:1;
-padding:12px;
-border-radius:8px;
-border:none;
-outline:none;
-font-size:14px;
-}
+    body = await request.json()
+    question = body.get("question")
 
-button{
-padding:12px 18px;
-background:#22c55e;
-border:none;
-color:white;
-border-radius:8px;
-cursor:pointer;
-font-weight:600;
-}
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=question
+        )
 
-button:hover{
-background:#16a34a;
-}
+        return {"answer": response.text}
 
-</style>
-</head>
-
-<body>
-
-<div id="chat">
-
-<header>AI Study Agent</header>
-
-<div id="messages"></div>
-
-<div id="inputBox">
-<input id="question" placeholder="Ask anything about AI / ML..." />
-<button onclick="ask()">Send</button>
-</div>
-
-</div>
-
-<script>
-
-    async function ask(){
-    
-    let q=document.getElementById("question").value
-    let messages=document.getElementById("messages")
-    
-    if(!q) return
-    
-    messages.innerHTML+=`<div class="msg user">${q}</div>`
-    
-    document.getElementById("question").value=""
-    
-    let typing=document.createElement("div")
-    typing.className="msg ai"
-    typing.innerText="AI is typing..."
-    messages.appendChild(typing)
-    
-    try{
-    
-    let res = await fetch("https://ai-study-agent-28fe.onrender.com/ask",{
-    method:"POST",
-    headers:{
-    "Content-Type":"application/json"
-    },
-    body:JSON.stringify({question:q})
-    })
-    
-    let data = await res.json()
-    
-    typing.remove()
-    
-    messages.innerHTML+=`<div class="msg ai">${data.answer || data.error}</div>`
-    
-    messages.scrollTop=messages.scrollHeight
-    
-    }catch(err){
-    
-    typing.remove()
-    
-    messages.innerHTML+=`<div class="msg ai">Server not reachable</div>`
-    
-    }
-    
-    }
-    
-    </script>
-
-</body>
-</html>
+    except Exception as e:
+        return {"error": str(e)}
