@@ -1,24 +1,23 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from google import genai
 import os
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = FastAPI()
 
-# CORS middleware must be added before routes
+# CORS FIX
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow localhost and deployed frontend
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # includes OPTIONS
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 @app.get("/")
 def home():
@@ -27,16 +26,31 @@ def home():
 
 @app.post("/ask")
 async def ask_agent(request: Request):
+
     data = await request.json()
     question = data.get("question")
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=question
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "openai/gpt-3.5-turbo",
+                "messages": [
+                    {"role": "user", "content": question}
+                ]
+            }
         )
 
-        return {"answer": response.text}
+        result = response.json()
+
+        answer = result["choices"][0]["message"]["content"]
+
+        return {"answer": answer}
 
     except Exception as e:
         return {"error": str(e)}
