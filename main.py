@@ -3,6 +3,7 @@ from google import genai
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # Load environment variables
 load_dotenv()
@@ -12,12 +13,11 @@ api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     raise ValueError("GOOGLE_API_KEY not found")
 
-# Initialize Gemini client
 client = genai.Client(api_key=api_key)
 
 app = FastAPI()
 
-# Enable CORS for frontend
+# Allow frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,21 +26,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Home route
+# Request model
+class Question(BaseModel):
+    question: str
+
+# Health check
 @app.get("/")
 def home():
     return {"message": "AI Study Agent Running"}
 
-# Ask AI
+# Chat history
+chat_history = []
+
 @app.post("/ask")
-async def ask_agent(question: str):
+async def ask_agent(data: Question):
     try:
+        chat_history.append({"role": "user", "content": data.question})
+
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=question
+            contents=data.question
         )
 
-        answer = response.text if response.text else "No response from AI"
+        answer = response.text
+
+        chat_history.append({"role": "ai", "content": answer})
 
         return {"answer": answer}
 
