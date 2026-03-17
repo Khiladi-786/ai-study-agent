@@ -38,21 +38,21 @@ def home():
 # Chat history
 chat_history = []
 
+from pydantic import BaseModel
+
+class Question(BaseModel):
+    question: str
+
+
 @app.post("/ask")
 async def ask_agent(data: Question):
     try:
-        chat_history.append({"role": "user", "content": data.question})
-
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-1.5-flash",
             contents=data.question
         )
 
-        answer = response.text
-
-        chat_history.append({"role": "ai", "content": answer})
-
-        return {"answer": answer}
+        return {"answer": response.text}
 
     except Exception as e:
         return {"error": str(e)}
